@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"path/filepath"
 	"sync"
+
+	"github.com/gorilla/websocket"
 )
 
 type templateHandler struct {
@@ -14,8 +16,21 @@ type templateHandler struct {
 	templ    *template.Template
 }
 
+type client struct {
+	socket *websocket.Conn
+	send   chan []byte
+	room   *room
+}
+
 func main() {
+	r := newRoom()
+
 	http.Handle("/", &templateHandler{filename: "chat.html"})
+	http.Handle("/room", r)
+
+	// get room going
+	go r.run()
+
 	if err := http.ListenAndServe(":3000", nil); err != nil {
 		log.Printf("Listen and Serve: %s\n", err.Error())
 		return
